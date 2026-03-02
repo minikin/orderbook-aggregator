@@ -1,0 +1,6 @@
+[workspace]
+members = ["crates/orderbook-lib"]
+resolver = "2"
+
+[workspace.dependencies]
+rust_decimal = "1.39.0"
