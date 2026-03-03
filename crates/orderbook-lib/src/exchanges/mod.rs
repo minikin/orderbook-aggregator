@@ -1,4 +1,5 @@
 pub mod binance;
+pub mod bitstamp;
 
 mod connector;
 mod error;

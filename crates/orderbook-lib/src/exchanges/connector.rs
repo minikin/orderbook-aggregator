@@ -9,6 +9,8 @@ pub trait ExchangeConnector: Send + Sync + 'static {
     /// Returns the WebSocket URL for the given trading pair (e.g. `"ethbtc"`).
     fn ws_url(&self, pair: &str) -> String;
 
+    /// Returns a JSON subscription message to send immediately after connecting,
+    /// or `None` if the exchange starts streaming without a subscription step.
     fn subscribe_message(&self, pair: &str) -> Option<String>;
 
     /// Parses a raw WebSocket text frame into an [`OrderBook`] snapshot.
