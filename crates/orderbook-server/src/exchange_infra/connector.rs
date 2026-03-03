@@ -1,10 +1,10 @@
-use crate::types::OrderBook;
+use orderbook_lib::types::OrderBook;
 
 use super::ExchangeError;
 
 /// Implemented by each exchange-specific connector.
 pub trait ExchangeConnector: Send + Sync + 'static {
-    /// Human-readable exchange name.
+    /// Human-readable exchange name used in log messages and [`orderbook_lib::types::Level::exchange`].
     const NAME: &'static str;
 
     /// Returns the WebSocket URL for the given trading pair (e.g. `"ethbtc"`).
@@ -15,5 +15,7 @@ pub trait ExchangeConnector: Send + Sync + 'static {
     fn subscribe_message(&self, pair: &str) -> Option<String>;
 
     /// Parses a raw WebSocket text frame into an [`OrderBook`] snapshot.
-    fn parse_message(&self, message: &str) -> Result<Option<OrderBook>, ExchangeError>;
+    ///
+    /// Returns `Ok(None)` for control/heartbeat frames that should be ignored.
+    fn parse_message(&self, raw: &str) -> Result<Option<OrderBook>, ExchangeError>;
 }

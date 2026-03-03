@@ -1,15 +1,13 @@
-use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
-use tokio_tungstenite::tungstenite::Error as TungsteniteError;
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum ExchangeError {
     // Boxed to keep the enum size small (tungstenite::Error is 136 bytes).
     #[error("websocket error: {0}")]
-    WebSocket(Box<TungsteniteError>),
+    WebSocket(Box<tokio_tungstenite::tungstenite::Error>),
 
     #[error("json parse error: {0}")]
-    Json(#[from] SerdeJsonError),
+    Json(#[from] serde_json::Error),
 
     #[error("unexpected message format: {0}")]
     Format(String),
@@ -18,8 +16,8 @@ pub enum ExchangeError {
     InvalidConfig(String),
 }
 
-impl From<TungsteniteError> for ExchangeError {
-    fn from(err: TungsteniteError) -> Self {
-        ExchangeError::WebSocket(Box::new(err))
+impl From<tokio_tungstenite::tungstenite::Error> for ExchangeError {
+    fn from(e: tokio_tungstenite::tungstenite::Error) -> Self {
+        ExchangeError::WebSocket(Box::new(e))
     }
 }

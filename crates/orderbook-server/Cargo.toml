@@ -1,0 +1,24 @@
+[package]
+name = "orderbook-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+orderbook-lib = { path = "../orderbook-lib" }
+tonic = "0.14.5"
+prost = "0.14.3"
+anyhow = "1"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.28.0", features = ["native-tls"] }
+futures-util = "0.3"
+tokio-stream = "0.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rust_decimal.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+rand.workspace = true
+
+[build-dependencies]
+tonic-build = "0.14.5"

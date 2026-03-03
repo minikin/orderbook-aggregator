@@ -1,9 +1,9 @@
 use rust_decimal::Decimal;
 
-use crate::types::{Level, Levels};
+use orderbook_lib::types::{Level, Levels};
 
 /// Converts raw exchange level tuples into validated domain levels.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct LevelParser;
 
 impl LevelParser {
@@ -45,5 +45,52 @@ impl LevelParser {
         }
 
         levels
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    fn dec(value: &str) -> Decimal {
+        Decimal::from_str(value).unwrap()
+    }
+
+    #[test]
+    fn rejects_non_decimal_prices() {
+        let raw = vec![
+            ["NaN".to_string(), "1.0".to_string()],
+            ["inf".to_string(), "1.0".to_string()],
+            ["-inf".to_string(), "1.0".to_string()],
+            ["0.062".to_string(), "10.0".to_string()],
+        ];
+        let levels = LevelParser::parse("binance", raw);
+        assert_eq!(levels.len(), 1);
+        assert_eq!(levels[0].price, dec("0.062"));
+    }
+
+    #[test]
+    fn rejects_zero_and_negative_prices() {
+        let raw = vec![
+            ["0.0".to_string(), "1.0".to_string()],
+            ["-0.1".to_string(), "1.0".to_string()],
+            ["0.062".to_string(), "10.0".to_string()],
+        ];
+        let levels = LevelParser::parse("binance", raw);
+        assert_eq!(levels.len(), 1);
+        assert_eq!(levels[0].price, dec("0.062"));
+    }
+
+    #[test]
+    fn rejects_zero_and_negative_amounts() {
+        let raw = vec![
+            ["0.062".to_string(), "0.0".to_string()],
+            ["0.062".to_string(), "-1.0".to_string()],
+            ["0.063".to_string(), "5.0".to_string()],
+        ];
+        let levels = LevelParser::parse("binance", raw);
+        assert_eq!(levels.len(), 1);
+        assert_eq!(levels[0].price, dec("0.063"));
     }
 }

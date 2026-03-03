@@ -6,15 +6,15 @@ pub const INLINE_LEVEL_CAPACITY: usize = 24;
 pub type Levels = SmallVec<[Level; INLINE_LEVEL_CAPACITY]>;
 
 /// A single price level in an order book.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone)]
 pub struct Level {
     pub exchange: &'static str,
     pub price: Decimal,
     pub amount: Decimal,
 }
 
-/// A snapshot of one exchange's order book.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+/// A snapshot of one exchange's order book (normalised representation).
+#[derive(Debug, Clone, Default)]
 pub struct OrderBook {
     pub bids: Levels,
     pub asks: Levels,

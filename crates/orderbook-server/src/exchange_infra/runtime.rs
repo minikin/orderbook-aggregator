@@ -5,9 +5,41 @@ use tokio::sync::watch;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{error, info, warn};
 
-use crate::types::OrderBook;
+use orderbook_lib::types::OrderBook;
 
 use super::{ConnectorRuntimeConfig, ExchangeConnector, ExchangeError};
+
+#[derive(Debug, Clone, Copy)]
+struct ParseErrorStreak {
+    current: u32,
+    max: u32,
+}
+
+impl ParseErrorStreak {
+    fn new(max: u32) -> Self {
+        Self {
+            current: 0,
+            max: max.max(1),
+        }
+    }
+
+    fn reset(&mut self) {
+        self.current = 0;
+    }
+
+    fn record(&mut self) -> bool {
+        self.current = self.current.saturating_add(1);
+        self.current >= self.max
+    }
+
+    fn current(&self) -> u32 {
+        self.current
+    }
+
+    fn max(&self) -> u32 {
+        self.max
+    }
+}
 
 /// Connector runtime state for one exchange stream.
 pub struct ConnectorRuntime<C: ExchangeConnector> {
@@ -20,7 +52,11 @@ pub struct ConnectorRuntime<C: ExchangeConnector> {
 }
 
 impl<C: ExchangeConnector> ConnectorRuntime<C> {
-    pub fn new(
+    pub fn new(connector: C, pair: String, tx: watch::Sender<Option<OrderBook>>) -> Self {
+        Self::with_config(connector, pair, tx, ConnectorRuntimeConfig::default())
+    }
+
+    pub(crate) fn with_config(
         connector: C,
         pair: String,
         tx: watch::Sender<Option<OrderBook>>,
@@ -80,7 +116,7 @@ impl<C: ExchangeConnector> ConnectorRuntime<C> {
                 (self.backoff * 2).min(self.config.max_backoff)
             };
 
-            let sleep_ms = Self::reconnect_sleep_ms(self.backoff);
+            let sleep_ms = reconnect_sleep_ms(self.backoff);
 
             match result {
                 Ok(()) => info!("{}: stream ended, reconnecting in {sleep_ms}ms", C::NAME),
@@ -105,6 +141,9 @@ impl<C: ExchangeConnector> ConnectorRuntime<C> {
             ws.send(Message::Text(msg.into())).await?;
         }
 
+        let mut parse_error_streak =
+            ParseErrorStreak::new(self.config.max_consecutive_parse_errors);
+
         loop {
             let msg_opt = tokio::time::timeout(self.config.read_timeout, ws.next())
                 .await
@@ -128,27 +167,69 @@ impl<C: ExchangeConnector> ConnectorRuntime<C> {
             match self.connector.parse_message(&text) {
                 Ok(Some(book)) => {
                     let _ = self.tx.send(Some(book));
+                    parse_error_streak.reset();
                 }
-                Ok(None) => {}
+                Ok(None) => parse_error_streak.reset(),
                 Err(e @ ExchangeError::InvalidConfig(_)) => return Err(e),
                 // Format-level message errors terminate this session so the
                 // outer reconnect loop can apply backoff and establish a clean
                 // connection.
                 Err(e @ ExchangeError::Format(_)) => return Err(e),
-                // Keep tolerating occasional malformed frames without tearing
-                // down an otherwise healthy stream.
-                Err(e) => warn!("{}: parse error: {e}", C::NAME),
+                Err(e) => {
+                    warn!(
+                        "{}: parse error ({}/{}): {e}",
+                        C::NAME,
+                        parse_error_streak.current().saturating_add(1),
+                        parse_error_streak.max()
+                    );
+                    if parse_error_streak.record() {
+                        return Err(ExchangeError::Format(format!(
+                            "{}: reconnecting after {} consecutive parse errors (last error: {e})",
+                            C::NAME,
+                            parse_error_streak.max()
+                        )));
+                    }
+                }
             }
         }
 
         Ok(())
     }
+}
 
-    fn reconnect_sleep_ms(backoff: Duration) -> u64 {
-        // Equal jitter: sleep for [backoff/2, backoff].
-        // Modulo bias is negligible for backoff jitter purposes.
-        let half_ms = backoff.as_millis() as u64 / 2;
-        let jitter_ms = rand::random::<u64>() % (half_ms + 1);
-        half_ms + jitter_ms
+fn reconnect_sleep_ms(backoff: Duration) -> u64 {
+    // Equal jitter: sleep for [backoff/2, backoff].
+    // Modulo bias is negligible for backoff jitter purposes.
+    let half_ms = backoff.as_millis() as u64 / 2;
+    let jitter_ms = rand::random::<u64>() % (half_ms + 1);
+    half_ms + jitter_ms
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ParseErrorStreak;
+
+    #[test]
+    fn parse_error_streak_triggers_at_threshold() {
+        let mut streak = ParseErrorStreak::new(3);
+        assert!(!streak.record());
+        assert!(!streak.record());
+        assert!(streak.record());
+    }
+
+    #[test]
+    fn parse_error_streak_resets_after_success() {
+        let mut streak = ParseErrorStreak::new(2);
+        assert!(!streak.record());
+        streak.reset();
+        assert!(!streak.record());
+        assert!(streak.record());
+    }
+
+    #[test]
+    fn parse_error_streak_treats_zero_threshold_as_one() {
+        let mut streak = ParseErrorStreak::new(0);
+        assert!(streak.record());
+        assert_eq!(streak.max(), 1);
     }
 }
