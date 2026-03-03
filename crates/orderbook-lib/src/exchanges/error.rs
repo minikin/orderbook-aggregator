@@ -13,6 +13,9 @@ pub enum ExchangeError {
 
     #[error("unexpected message format: {0}")]
     Format(String),
+
+    #[error("invalid configuration: {0}")]
+    InvalidConfig(String),
 }
 
 impl From<TungsteniteError> for ExchangeError {

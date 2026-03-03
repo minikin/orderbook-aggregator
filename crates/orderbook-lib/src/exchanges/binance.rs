@@ -2,6 +2,7 @@ use serde::{Deserialize, de::IgnoredAny};
 
 use super::{ExchangeConnector, ExchangeError};
 use crate::types::OrderBook;
+
 pub struct BinanceConnector;
 
 impl ExchangeConnector for BinanceConnector {
@@ -20,7 +21,7 @@ impl ExchangeConnector for BinanceConnector {
     }
 
     fn parse_message(&self, raw: &str) -> Result<Option<OrderBook>, ExchangeError> {
-        match from_str::<BinanceMessage<'_>>(raw)? {
+        match serde_json::from_str::<BinanceMessage<'_>>(raw)? {
             BinanceMessage::Depth(msg) => Ok(Some(msg.into_order_book())),
             // Binance sends {"code":-1121,"msg":"Invalid symbol."} for bad pairs.
             // Treat this as misconfiguration for the configured pair.
@@ -68,8 +69,8 @@ struct DepthMessage<'a> {
 impl DepthMessage<'_> {
     fn into_order_book(self) -> OrderBook {
         OrderBook {
-            bids: LevelParser::parser("binance", self.bids),
-            asks: LevelParser::parser("binance", self.asks),
+            bids: super::LevelParser::parse("binance", self.bids),
+            asks: super::LevelParser::parse("binance", self.asks),
         }
     }
 }

@@ -4,3 +4,7 @@ resolver = "2"
 
 [workspace.dependencies]
 rust_decimal = "1.39.0"
+rand = { version = "0.10.0", default-features = false, features = [
+    "thread_rng",
+] }
+smallvec = "1.13.2"

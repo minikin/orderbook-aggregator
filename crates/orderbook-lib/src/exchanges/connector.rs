@@ -1,5 +1,6 @@
-use crate::error::ExchangeError;
 use crate::types::OrderBook;
+
+use super::ExchangeError;
 
 /// Implemented by each exchange-specific connector.
 pub trait ExchangeConnector: Send + Sync + 'static {

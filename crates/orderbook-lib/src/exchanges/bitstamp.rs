@@ -8,6 +8,7 @@ pub struct BitstampConnector;
 impl ExchangeConnector for BitstampConnector {
     const NAME: &'static str = "bitstamp";
 
+    #[allow(unused_variables)]
     fn ws_url(&self, pair: &str) -> String {
         "wss://ws.bitstamp.net".to_owned()
     }
