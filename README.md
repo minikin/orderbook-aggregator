@@ -1,5 +1,7 @@
 # Order Book Aggregator
 
+![Demo](docs/images/demo.gif)
+
 A real-time order book aggregator that connects to Binance and Bitstamp simultaneously,
 merges their order books, and streams the result via gRPC.
 
@@ -65,7 +67,7 @@ cargo test
 
 ## Architecture
 
-TODO: add a diagram
+![Architecture diagram](docs/images/architecture.png)
 
 - **`crates/orderbook-lib`** — pure domain logic: types and aggregation rules. No I/O.
 - **`crates/orderbook-server`** — application/service wiring, gRPC server (tonic),
