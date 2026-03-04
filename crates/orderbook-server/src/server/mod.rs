@@ -3,7 +3,9 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
 mod mapping;
-pub mod proto;
+pub mod proto {
+    include!(concat!(env!("OUT_DIR"), "/orderbook.rs"));
+}
 
 use proto::{Empty, Summary as ProtoSummary, orderbook_aggregator_server::OrderbookAggregator};
 

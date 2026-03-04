@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 orderbook-lib = { path = "../orderbook-lib" }
 tonic = "0.14.5"
+tonic-prost = "0.14.5"
 prost = "0.14.3"
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
@@ -21,4 +22,4 @@ thiserror = "2"
 rand.workspace = true
 
 [build-dependencies]
-tonic-build = "0.14.5"
+tonic-prost-build = "0.14.5"
