@@ -7,7 +7,6 @@ merges their order books, and streams the result via gRPC.
 
 - [Order Book Aggregator](#order-book-aggregator)
   - [Quick Start](#quick-start)
-  - [Test](#test)
   - [Architecture](#architecture)
 
 ## Quick Start
@@ -57,12 +56,6 @@ Example output:
     ...
   ]
 }
-```
-
-## Test
-
-```bash
-cargo test
 ```
 
 ## Architecture
