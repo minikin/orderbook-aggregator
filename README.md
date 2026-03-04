@@ -28,6 +28,11 @@ sudo apt-get update && sudo apt-get install -y protobuf-compiler
 ```bash
 cargo run --release -p orderbook-server
 ```
+Or run with another trading pair:
+
+```bash
+ORDERBOOK_PAIR=btcusdt cargo run --release -p orderbook-server
+```
 
 Default runtime values:
 - pair: `ethbtc`

@@ -48,7 +48,7 @@ fn init_tracing() {
 }
 
 async fn run() -> anyhow::Result<()> {
-    let pair = DEFAULT_PAIR.to_owned();
+    let pair = configured_pair()?;
     let addr = default_bind_addr()?;
 
     info!("Starting aggregator for pair '{pair}' on {addr}");
@@ -58,6 +58,22 @@ async fn run() -> anyhow::Result<()> {
     info!("gRPC server listening on {addr}");
 
     run_until_exit(addr, service, handles).await
+}
+
+fn configured_pair() -> anyhow::Result<String> {
+    match std::env::var("ORDERBOOK_PAIR") {
+        Ok(raw) => {
+            let pair = raw.trim().to_lowercase();
+            if pair.is_empty() {
+                anyhow::bail!("ORDERBOOK_PAIR must be a non-empty string");
+            }
+            Ok(pair)
+        }
+        Err(std::env::VarError::NotPresent) => Ok(DEFAULT_PAIR.to_owned()),
+        Err(std::env::VarError::NotUnicode(_)) => {
+            anyhow::bail!("ORDERBOOK_PAIR must be valid UTF-8")
+        }
+    }
 }
 
 fn default_bind_addr() -> anyhow::Result<SocketAddr> {
