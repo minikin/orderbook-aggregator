@@ -141,8 +141,7 @@ impl<C: ExchangeConnector> ConnectorRuntime<C> {
             ws.send(Message::Text(msg.into())).await?;
         }
 
-        let mut parse_error_streak =
-            ParseErrorStreak::new(self.config.max_consecutive_parse_errors);
+        let mut parse_error_streak = ParseErrorStreak::new(self.config.max_consecutive_parse_errors);
 
         loop {
             let msg_opt = tokio::time::timeout(self.config.read_timeout, ws.next())

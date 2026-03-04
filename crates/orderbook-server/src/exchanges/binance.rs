@@ -9,10 +9,7 @@ impl ExchangeConnector for BinanceConnector {
     const NAME: &'static str = "binance";
 
     fn ws_url(&self, pair: &str) -> String {
-        format!(
-            "wss://stream.binance.com:9443/ws/{}@depth20@100ms",
-            pair.to_lowercase()
-        )
+        format!("wss://stream.binance.com:9443/ws/{}@depth20@100ms", pair.to_lowercase())
     }
 
     fn subscribe_message(&self, _pair: &str) -> Option<String> {
@@ -24,9 +21,9 @@ impl ExchangeConnector for BinanceConnector {
             BinanceMessage::Depth(msg) => Ok(Some(msg.into_order_book())),
             // Binance sends {"code":-1121,"msg":"Invalid symbol."} for bad pairs.
             // Treat this as permanent misconfiguration for the configured pair.
-            BinanceMessage::Error { code, msg } => Err(ExchangeError::InvalidConfig(format!(
-                "Binance API error {code}: {msg}"
-            ))),
+            BinanceMessage::Error { code, msg } => {
+                Err(ExchangeError::InvalidConfig(format!("Binance API error {code}: {msg}")))
+            }
             // Connection confirmation {"result":null,"id":1} and similar.
             BinanceMessage::Other(_) => Ok(None),
         }

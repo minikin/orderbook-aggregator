@@ -1,5 +1,3 @@
-use std::future::Future;
-
 use orderbook_lib::{
     aggregator::OrderBookAggregator,
     types::{OrderBook, Summary},
@@ -7,7 +5,7 @@ use orderbook_lib::{
 use tokio::sync::{broadcast, watch};
 
 pub(crate) trait BookSources {
-    fn changed(&mut self) -> impl Future<Output = bool> + Send + '_;
+    async fn changed(&mut self) -> bool;
     fn with_latest<R>(&mut self, f: impl FnOnce(Option<&OrderBook>, Option<&OrderBook>) -> R) -> R;
 }
 
@@ -33,12 +31,10 @@ impl WatchBookSources {
 }
 
 impl BookSources for WatchBookSources {
-    fn changed(&mut self) -> impl Future<Output = bool> + Send + '_ {
-        async move {
-            tokio::select! {
-                result = self.binance_rx.changed() => result.is_ok(),
-                result = self.bitstamp_rx.changed() => result.is_ok(),
-            }
+    async fn changed(&mut self) -> bool {
+        tokio::select! {
+            result = self.binance_rx.changed() => result.is_ok(),
+            result = self.bitstamp_rx.changed() => result.is_ok(),
         }
     }
 
@@ -136,25 +132,19 @@ mod tests {
     }
 
     impl BookSources for ScriptedSources {
-        fn changed(&mut self) -> impl Future<Output = bool> + Send + '_ {
+        async fn changed(&mut self) -> bool {
             if let Some(step) = self.steps.get(self.index).cloned() {
                 self.index += 1;
                 self.current_binance = step.binance;
                 self.current_bitstamp = step.bitstamp;
-                std::future::ready(step.changed)
+                step.changed
             } else {
-                std::future::ready(false)
+                false
             }
         }
 
-        fn with_latest<R>(
-            &mut self,
-            f: impl FnOnce(Option<&OrderBook>, Option<&OrderBook>) -> R,
-        ) -> R {
-            f(
-                self.current_binance.as_ref(),
-                self.current_bitstamp.as_ref(),
-            )
+        fn with_latest<R>(&mut self, f: impl FnOnce(Option<&OrderBook>, Option<&OrderBook>) -> R) -> R {
+            f(self.current_binance.as_ref(), self.current_bitstamp.as_ref())
         }
     }
 
@@ -165,19 +155,13 @@ mod tests {
 
     impl RecordingPublisher {
         fn snapshot(&self) -> Vec<Summary> {
-            self.published
-                .lock()
-                .expect("publisher mutex poisoned")
-                .clone()
+            self.published.lock().expect("publisher mutex poisoned").clone()
         }
     }
 
     impl SummaryPublisher for RecordingPublisher {
         fn publish(&self, summary: Summary) {
-            self.published
-                .lock()
-                .expect("publisher mutex poisoned")
-                .push(summary);
+            self.published.lock().expect("publisher mutex poisoned").push(summary);
         }
     }
 
@@ -218,8 +202,7 @@ mod tests {
             },
         ]);
         let publisher = RecordingPublisher::default();
-        let service =
-            BookSummaryService::new(OrderBookAggregator::default(), sources, publisher.clone());
+        let service = BookSummaryService::new(OrderBookAggregator::default(), sources, publisher.clone());
 
         service.run().await;
 
@@ -248,8 +231,7 @@ mod tests {
             },
         ]);
         let publisher = RecordingPublisher::default();
-        let service =
-            BookSummaryService::new(OrderBookAggregator::default(), sources, publisher.clone());
+        let service = BookSummaryService::new(OrderBookAggregator::default(), sources, publisher.clone());
 
         service.run().await;
 

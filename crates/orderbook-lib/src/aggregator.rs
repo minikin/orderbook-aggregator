@@ -118,10 +118,7 @@ mod tests {
             vec![level("binance", "100", "1"), level("binance", "102", "1")],
             vec![level("binance", "103", "1")],
         );
-        let b = book(
-            vec![level("bitstamp", "101", "1")],
-            vec![level("bitstamp", "104", "1")],
-        );
+        let b = book(vec![level("bitstamp", "101", "1")], vec![level("bitstamp", "104", "1")]);
         let s = aggregator.merge([&a, &b]);
         assert_eq!(s.bids[0].price, dec("102"));
         assert_eq!(s.bids[1].price, dec("101"));
@@ -135,10 +132,7 @@ mod tests {
             vec![level("binance", "99", "1")],
             vec![level("binance", "105", "1"), level("binance", "103", "1")],
         );
-        let b = book(
-            vec![level("bitstamp", "98", "1")],
-            vec![level("bitstamp", "104", "1")],
-        );
+        let b = book(vec![level("bitstamp", "98", "1")], vec![level("bitstamp", "104", "1")]);
         let s = aggregator.merge([&a, &b]);
         assert_eq!(s.asks[0].price, dec("103"));
         assert_eq!(s.asks[1].price, dec("104"));
@@ -148,10 +142,7 @@ mod tests {
     #[test]
     fn spread_is_best_ask_minus_best_bid() {
         let aggregator = OrderBookAggregator::default();
-        let a = book(
-            vec![level("binance", "100", "1")],
-            vec![level("binance", "102", "1")],
-        );
+        let a = book(vec![level("binance", "100", "1")], vec![level("binance", "102", "1")]);
         let s = aggregator.merge([&a, &OrderBook::default()]);
         assert_eq!(s.spread, dec("2"));
     }
@@ -159,9 +150,7 @@ mod tests {
     #[test]
     fn truncates_to_ten_levels() {
         let aggregator = OrderBookAggregator::default();
-        let bids: Vec<Level> = (0..15)
-            .map(|i| level("binance", &i.to_string(), "1"))
-            .collect();
+        let bids: Vec<Level> = (0..15).map(|i| level("binance", &i.to_string(), "1")).collect();
         let a = book(bids, vec![level("binance", "20", "1")]);
         let s = aggregator.merge([&a, &OrderBook::default()]);
         assert_eq!(s.bids.len(), 10);
@@ -191,8 +180,7 @@ mod tests {
 
     #[test]
     fn empty_books_give_zero_spread() {
-        let s =
-            OrderBookAggregator::default().merge([&OrderBook::default(), &OrderBook::default()]);
+        let s = OrderBookAggregator::default().merge([&OrderBook::default(), &OrderBook::default()]);
         assert_eq!(s.spread, Decimal::ZERO);
         assert!(s.bids.is_empty());
         assert!(s.asks.is_empty());
@@ -200,12 +188,8 @@ mod tests {
 
     #[test]
     fn custom_max_levels_is_respected() {
-        let bids: Vec<Level> = (0..5)
-            .map(|i| level("binance", &i.to_string(), "1"))
-            .collect();
-        let asks: Vec<Level> = (100..105)
-            .map(|i| level("binance", &i.to_string(), "1"))
-            .collect();
+        let bids: Vec<Level> = (0..5).map(|i| level("binance", &i.to_string(), "1")).collect();
+        let asks: Vec<Level> = (100..105).map(|i| level("binance", &i.to_string(), "1")).collect();
 
         let s = OrderBookAggregator::new(3).merge([&book(bids, asks)]);
         assert_eq!(s.bids.len(), 3);
@@ -214,10 +198,7 @@ mod tests {
 
     #[test]
     fn zero_max_levels_returns_empty_sides_and_zero_spread() {
-        let a = book(
-            vec![level("binance", "100", "1")],
-            vec![level("binance", "101", "1")],
-        );
+        let a = book(vec![level("binance", "100", "1")], vec![level("binance", "101", "1")]);
         let s = OrderBookAggregator::new(0).merge([&a]);
         assert_eq!(s.spread, Decimal::ZERO);
         assert!(s.bids.is_empty());

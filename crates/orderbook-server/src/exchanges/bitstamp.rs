@@ -134,12 +134,7 @@ mod tests {
         // bts:request_reconnect sends `"data": ""` (a JSON string, not an object).
         // This must not produce a parse error or a WARN log entry.
         let connector = BitstampConnector;
-        assert!(
-            connector
-                .parse_message(REQUEST_RECONNECT)
-                .unwrap()
-                .is_none()
-        );
+        assert!(connector.parse_message(REQUEST_RECONNECT).unwrap().is_none());
     }
 
     #[test]
